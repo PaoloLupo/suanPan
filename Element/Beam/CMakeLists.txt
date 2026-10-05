@@ -4,6 +4,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         B31OS.cpp
         B21.cpp
         B31.cpp
+        EB31.cpp
         EB31OS.cpp
         EB21.cpp
         F21H.cpp

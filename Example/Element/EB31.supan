@@ -1,0 +1,44 @@
+# A TEST MODEL FOR EB31 ELEMENT
+# cantilever of length L = 2 along x with E = 1000, G = 400, A = 10, IZ = 5, IY = 2, J = 3
+# tip loads: axial N = 10, transverse P_y = 3 and P_z = 1.5, torque T = 6
+# u = NL/EA = 2E-3, v = P_yL^3/3EIZ = 1.6E-3, w = P_zL^3/3EIY = 2E-3
+# phi = TL/GJ = 1E-2, theta_y = -P_zL^2/2EIY = -1.5E-3, theta_z = P_yL^2/2EIZ = 1.2E-3
+
+node 1 0 0 0
+node 2 1 0 0
+node 3 2 0 0
+
+orientation B3DL 1 0. 0. 1.
+
+element EB31 1 1 2 1000 400 10 5 2 3 1
+element EB31 2 2 3 1000 400 10 5 2 3 1
+
+fix2 1 E 1
+
+cload 1 0 10 1 3
+cload 2 0 3 2 3
+cload 3 0 1.5 3 3
+cload 4 0 6 4 3
+
+step static 1
+set ini_step_size 1
+set fixed_step_size true
+
+converger RelIncreDisp 1 1E-10 5 1
+
+analyze
+
+# Node 3:
+# Coordinate:
+#   2.0000e+00  0.0000e+00  0.0000e+00
+# Displacement:
+#   2.0000e-03  1.6000e-03  2.0000e-03  1.0000e-02 -1.5000e-03  1.2000e-03
+# Resistance:
+#   1.0000e+01  3.0000e+00  1.5000e+00  6.0000e+00  1.7347e-15 -4.3160e-15
+peek node 3
+
+peek element 1
+
+reset
+clear
+exit

@@ -835,6 +835,12 @@
       "contents": "element EB21 ${1:(1)} ${2:(2)} ${3:(3)} ${4:(4)} ${5:(5)} ${6:(6)} ${7:[7]}\n# (1) int, unique element tag\n# (2) int, node i\n# (3) int, node j\n# (4) double, area\n# (5) double, moment inertia\n# (6) int, material tag\n# [7] bool string, nonlinear geometry switch, default: false"
     },
     {
+      "trigger": "EB31",
+      "details": "3d elastic bernoulli beam",
+      "kind": "type",
+      "contents": "element EB31 ${1:(1)} ${2:(2)} ${3:(3)} ${4:(4)} ${5:(5)} ${6:(6)} ${7:(7)} ${8:(8)} ${9:(9)} ${10:(10)} ${11:[11]}\n# (1) int, unique element tag\n# (2) int, node i\n# (3) int, node j\n# (4) double, elastic modulus\n# (5) double, shear modulus\n# (6) double, area\n# (7) double, iz, moment of inertia about local z axis (strong axis)\n# (8) double, iy, moment of inertia about local y axis (weak axis)\n# (9) double, torsional constant\n# (10) int, orientation tag\n# [11] bool string, nonlinear geometry switch, default: false"
+    },
+    {
       "trigger": "Elastic1D",
       "details": "uniaxial elastic material",
       "kind": "type",
