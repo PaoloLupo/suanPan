@@ -231,7 +231,8 @@ namespace {
         auto& modes = model->modes;
         if(modes.revision == model->revision) return modes.shape.empty() ? nullptr : &modes;
 
-        modes = {model->revision};
+        modes = {};
+        modes.revision = model->revision;
 
         const auto& factory = domain.get_factory();
         if(nullptr == eigenvalues(domain) || nullptr == factory->get_mass()) return nullptr;
