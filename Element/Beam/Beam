@@ -4,6 +4,7 @@
 #include "B31.h"
 #include "B31OS.h"
 #include "EB21.h"
+#include "EB31.h"
 #include "EB31OS.h"
 #include "F21.h"
 #include "F21H.h"

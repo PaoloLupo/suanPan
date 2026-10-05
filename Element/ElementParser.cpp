@@ -1414,6 +1414,40 @@ namespace {
         return_obj = std::make_unique<EB21>(tag, std::move(node_tag), area, moment_inertia, material_tag, is_true(nonlinear));
     }
 
+    void new_eb31(unique_ptr<Element>& return_obj, std::istringstream& command) {
+        unsigned tag;
+        if(!get_input(command, tag)) {
+            suanpan_error("A valid tag is required.\n");
+            return;
+        }
+
+        uvec node_tag(2);
+        if(!get_input(command, node_tag)) {
+            suanpan_error("Two valid nodes are required.\n");
+            return;
+        }
+
+        vec property(6);
+        if(!get_input(command, property)) {
+            suanpan_error("A valid section/material property is required.\n");
+            return;
+        }
+
+        unsigned orientation;
+        if(!get_input(command, orientation)) {
+            suanpan_error("A valid orientation tag is required.\n");
+            return;
+        }
+
+        std::string nonlinear = "false";
+        if(command.eof())
+            suanpan_debug("Linear geometry assumed.\n");
+        else if(!get_input(command, nonlinear))
+            suanpan_error("A valid nonlinear geometry switch is required.\n");
+
+        return_obj = std::make_unique<EB31>(tag, std::move(node_tag), std::move(property), orientation, is_true(nonlinear));
+    }
+
     void new_eb31os(unique_ptr<Element>& return_obj, std::istringstream& command) {
         unsigned tag;
         if(!get_input(command, tag)) {
@@ -2676,6 +2710,7 @@ int create_new_element(const shared_ptr<DomainBase>& domain, std::istringstream&
     else if(is_equal(element_id, "DKT4")) new_dkt4(new_element, command);
     else if(is_equal(element_id, "DKTS3")) new_dkts3(new_element, command);
     else if(is_equal(element_id, "EB21")) new_eb21(new_element, command);
+    else if(is_equal(element_id, "EB31")) new_eb31(new_element, command);
     else if(is_equal(element_id, "EB31OS")) new_eb31os(new_element, command);
     else if(is_equal(element_id, "Embedded2D")) new_embedded<2u>(new_element, command);
     else if(is_equal(element_id, "Embedded3D")) new_embedded<3u>(new_element, command);
