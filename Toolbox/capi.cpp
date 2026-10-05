@@ -18,6 +18,7 @@
 #include "capi.h"
 
 #include <Domain/Domain.h>
+#include <Domain/Factory.hpp>
 #include <Domain/Node.h>
 #include <Element/Element.h>
 #include <Include/whereami/whereami.h>
@@ -33,8 +34,22 @@
 extern fs::path SUANPAN_EXE;
 
 struct sp_model {
+    // results of a frequency analysis derived on demand, valid while the revision does not change
+    struct Modes {
+        unsigned revision = std::numeric_limits<unsigned>::max();
+        // mode shapes normalised to unit generalised mass, by column
+        mat shape;
+        // products of the mass matrix with the mode shapes
+        mat inertia;
+        // products of the mass matrix with unit values on each local DOF of every node, by column
+        mat unit_inertia;
+    };
+
     shared_ptr<Bead> bead = std::make_shared<Bead>();
     std::string output;
+    // bumped by every call that may change the model
+    unsigned revision = 0;
+    mutable Modes modes;
 };
 
 namespace {
@@ -114,6 +129,7 @@ namespace {
         if(nullptr == model) return SP_INVALID_ARGUMENT;
 
         initialise();
+        ++model->revision;
         // discard output not produced by this call
         sink().take();
 
@@ -201,6 +217,54 @@ namespace {
         return query(model, length, [&](const Domain& domain) {
             const auto& node = domain.get_node(tag);
             return nullptr == node ? SP_NOT_FOUND : copy_out(((*node).*getter)(), out, capacity, length);
+        });
+    }
+
+    // eigenvalues are only available after a frequency analysis, which finds fewer modes than DOFs
+    const vec* eigenvalues(const Domain& domain) {
+        const auto& factory = domain.get_factory();
+        if(nullptr == factory || AnalysisType::EIGEN != factory->get_analysis_type() || factory->get_eigenvalue().n_elem >= factory->get_size()) return nullptr;
+        return &factory->get_eigenvalue();
+    }
+
+    const sp_model::Modes* modes(const sp_model* model, const Domain& domain) {
+        auto& modes = model->modes;
+        if(modes.revision == model->revision) return modes.shape.empty() ? nullptr : &modes;
+
+        modes = {model->revision};
+
+        const auto& factory = domain.get_factory();
+        if(nullptr == eigenvalues(domain) || nullptr == factory->get_mass()) return nullptr;
+
+        modes.shape = factory->get_eigenvector();
+        modes.inertia = factory->get_mass() * modes.shape;
+        for(uword I = 0; I < modes.shape.n_cols; ++I)
+            if(const auto generalised_mass = dot(modes.shape.col(I), modes.inertia.col(I)); generalised_mass > 0.) {
+                const auto factor = 1. / std::sqrt(generalised_mass);
+                modes.shape.col(I) *= factor;
+                modes.inertia.col(I) *= factor;
+            }
+
+        uword max_dof = 0;
+        for(const auto& node : domain.get_node_pool()) max_dof = std::max(max_dof, node->get_reordered_dof().n_elem);
+        mat unit(factory->get_size(), max_dof, fill::zeros);
+        for(const auto& node : domain.get_node_pool()) {
+            const auto& dofs = node->get_reordered_dof();
+            for(uword I = 0; I < dofs.n_elem; ++I) unit(dofs(I), I) = 1.;
+        }
+        modes.unit_inertia = factory->get_mass() * unit;
+
+        return &modes;
+    }
+
+    int node_column(const sp_model* model, const unsigned tag, const unsigned column, double* out, const size_t capacity, size_t* length, mat sp_model::Modes::* field) {
+        return query(model, length, [&](const Domain& domain) {
+            const auto& node = domain.get_node(tag);
+            if(nullptr == node) return SP_NOT_FOUND;
+            const auto results = modes(model, domain);
+            if(nullptr == results || column >= (results->*field).n_cols) return SP_NOT_FOUND;
+            const vec values = (results->*field).col(column);
+            return copy_out(vec(values(node->get_reordered_dof())), out, capacity, length);
         });
     }
 } // namespace
@@ -307,4 +371,20 @@ int sp_element_resistance(const sp_model* model, const unsigned tag, double* out
         const auto& element = domain.get_element(tag);
         return nullptr == element ? SP_NOT_FOUND : copy_out(element->get_current_resistance(), out, capacity, length);
     });
+}
+
+int sp_eigenvalues(const sp_model* model, double* out, const size_t capacity, size_t* length) {
+    return query(model, length, [&](const Domain& domain) {
+        const auto values = eigenvalues(domain);
+        return nullptr == values ? SP_OK : copy_out(*values, out, capacity, length);
+    });
+}
+
+int sp_node_mode_shape(const sp_model* model, const unsigned tag, const unsigned mode, double* out, const size_t capacity, size_t* length) { return node_column(model, tag, mode, out, capacity, length, &sp_model::Modes::shape); }
+
+int sp_node_mode_inertia(const sp_model* model, const unsigned tag, const unsigned mode, double* out, const size_t capacity, size_t* length) { return node_column(model, tag, mode, out, capacity, length, &sp_model::Modes::inertia); }
+
+int sp_node_inertia(const sp_model* model, const unsigned tag, const unsigned dof, double* out, const size_t capacity, size_t* length) {
+    if(0 == dof) return SP_INVALID_ARGUMENT;
+    return node_column(model, tag, dof - 1, out, capacity, length, &sp_model::Modes::unit_inertia);
 }

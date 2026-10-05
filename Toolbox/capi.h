@@ -126,6 +126,30 @@ SP_API int sp_element_type(const sp_model* model, unsigned tag, char* out, size_
  */
 SP_API int sp_element_resistance(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
 
+/**
+ * @brief Writes the eigenvalues found by the last frequency analysis, the squares of the circular frequencies,
+ * which is empty unless the last step was a frequency analysis.
+ */
+SP_API int sp_eigenvalues(const sp_model* model, double* out, size_t capacity, size_t* length);
+
+/**
+ * @brief Writes the shape of a mode, numbered from zero in the order of `sp_eigenvalues`, at the DOFs of a node.
+ * Mode shapes are normalised to unit generalised mass.
+ */
+SP_API int sp_node_mode_shape(const sp_model* model, unsigned tag, unsigned mode, double* out, size_t capacity, size_t* length);
+
+/**
+ * @brief Writes the product of the mass matrix with the shape of a mode at the DOFs of a node.
+ * Summed over nodes along a DOF, it gives the participation factor of the mode for a unit motion along that DOF.
+ */
+SP_API int sp_node_mode_inertia(const sp_model* model, unsigned tag, unsigned mode, double* out, size_t capacity, size_t* length);
+
+/**
+ * @brief Writes the product of the mass matrix with a unit value on the DOF `dof`, numbered from one, of every node,
+ * at the DOFs of a node. Summed over nodes along the same DOF, it gives the mass that moves with a unit motion along it.
+ */
+SP_API int sp_node_inertia(const sp_model* model, unsigned tag, unsigned dof, double* out, size_t capacity, size_t* length);
+
 #ifdef __cplusplus
 }
 #endif
