@@ -103,6 +103,12 @@ SP_API int sp_analyze(sp_model* model);
  */
 SP_API const char* sp_model_output(const sp_model* model);
 
+/**
+ * @brief Writes the sorted tags of every object of a kind, named as in commands, such as "material",
+ * "section", "constraint" or "load". Unknown kinds give SP_INVALID_ARGUMENT.
+ */
+SP_API int sp_tags(const sp_model* model, const char* kind, unsigned* out, size_t capacity, size_t* length);
+
 SP_API int sp_node_tags(const sp_model* model, unsigned* out, size_t capacity, size_t* length);
 SP_API int sp_node_coordinate(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
 SP_API int sp_node_displacement(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);

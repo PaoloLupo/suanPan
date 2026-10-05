@@ -226,6 +226,8 @@ public:
     // unlike pools, which are only populated on initialisation, storages hold every inserted object
     const ElementStorage& get_element_storage() const { return element_pond; }
     const NodeStorage& get_node_storage() const { return node_pond; }
+    // sorted tags of every object of a kind named as in commands, such as "material", empty for unknown kinds
+    std::vector<unsigned> get_tags(std::string_view) const;
 
     friend shared_ptr<Amplitude>& get_amplitude(const shared_ptr<Domain>&, unsigned);
     friend shared_ptr<Expression>& get_expression(const shared_ptr<Domain>&, unsigned);

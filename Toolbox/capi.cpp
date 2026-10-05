@@ -23,6 +23,8 @@
 #include <Include/whereami/whereami.h>
 #include <Step/Bead.h>
 #include <Toolbox/command.h>
+#include <Toolbox/utility.h>
+#include <array>
 #include <typeinfo>
 #ifdef __GNUG__
 #include <cxxabi.h>
@@ -251,6 +253,13 @@ int sp_analyze(sp_model* model) {
 }
 
 const char* sp_model_output(const sp_model* model) { return nullptr == model ? "" : model->output.c_str(); }
+
+int sp_tags(const sp_model* model, const char* kind, unsigned* out, const size_t capacity, size_t* length) {
+    if(nullptr == kind) return SP_INVALID_ARGUMENT;
+    static constexpr std::array kinds{"amplitude", "constraint", "converger", "criterion", "database", "element", "expression", "group", "integrator", "interaction", "load", "material", "modifier", "node", "orientation", "recorder", "section", "solver", "step"};
+    if(std::ranges::none_of(kinds, [&](const char* known) { return is_equal(known, kind); })) return SP_INVALID_ARGUMENT;
+    return query(model, length, [&](const Domain& domain) { return copy_out(domain.get_tags(kind), out, capacity, length); });
+}
 
 int sp_node_tags(const sp_model* model, unsigned* out, const size_t capacity, size_t* length) {
     return query(model, length, [&](const Domain& domain) { return copy_out(sorted_tags(domain.get_node_storage()), out, capacity, length); });

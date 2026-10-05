@@ -39,6 +39,7 @@
 #include <Toolbox/Expression.h>
 #include <Toolbox/sort_color.hpp>
 #include <Toolbox/sort_rcm.h>
+#include <Toolbox/utility.h>
 #include <numeric>
 #include <ranges>
 
@@ -648,6 +649,37 @@ const SectionQueue& Domain::get_section_pool() const { return section_pond.get()
 const SolverQueue& Domain::get_solver_pool() const { return solver_pond.get(); }
 
 const StepQueue& Domain::get_step_pool() const { return step_pond; }
+
+std::vector<unsigned> Domain::get_tags(const std::string_view kind) const {
+    const auto collect = [](const auto& storage) {
+        std::vector<unsigned> tags;
+        tags.reserve(storage.size());
+        for(auto I = storage.cbegin(); I != storage.cend(); ++I) tags.emplace_back(I->first);
+        std::ranges::sort(tags);
+        return tags;
+    };
+
+    if(is_equal(kind, "amplitude")) return collect(amplitude_pond);
+    if(is_equal(kind, "constraint")) return collect(constraint_pond);
+    if(is_equal(kind, "converger")) return collect(converger_pond);
+    if(is_equal(kind, "criterion")) return collect(criterion_pond);
+    if(is_equal(kind, "database")) return collect(database_pond);
+    if(is_equal(kind, "element")) return collect(element_pond);
+    if(is_equal(kind, "expression")) return collect(expression_pond);
+    if(is_equal(kind, "group")) return collect(group_pond);
+    if(is_equal(kind, "integrator")) return collect(integrator_pond);
+    if(is_equal(kind, "interaction")) return collect(interaction_pond);
+    if(is_equal(kind, "load")) return collect(load_pond);
+    if(is_equal(kind, "material")) return collect(material_pond);
+    if(is_equal(kind, "modifier")) return collect(modifier_pond);
+    if(is_equal(kind, "node")) return collect(node_pond);
+    if(is_equal(kind, "orientation")) return collect(orientation_pond);
+    if(is_equal(kind, "recorder")) return collect(recorder_pond);
+    if(is_equal(kind, "section")) return collect(section_pond);
+    if(is_equal(kind, "solver")) return collect(solver_pond);
+    if(is_equal(kind, "step")) return collect(step_pond);
+    return {};
+}
 
 size_t Domain::get_amplitude() const { return amplitude_pond.size(); }
 
