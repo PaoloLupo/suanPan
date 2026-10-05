@@ -380,6 +380,11 @@ int FEAST::analyze() {
     if(SUANPAN_SUCCESS != G->process_constraint()) return SUANPAN_FAIL;
     D->update<Statistics::ProcessConstraint>(t_clock);
 
+    if(0 != W->get_multiplier_size()) {
+        suanpan_error("FEAST does not support constraints implemented by multipliers, use Arnoldi solver instead.\n");
+        return SUANPAN_FAIL;
+    }
+
     return quadratic ? quadratic_solve(W) : linear_solve(W);
 }
 

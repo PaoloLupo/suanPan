@@ -31,7 +31,7 @@
 #include <Domain/MetaMat/MetaMat.hpp>
 #include <memory>
 
-int eig_solve(vec&, mat&, const std::shared_ptr<MetaMat<double>>&, const std::shared_ptr<MetaMat<double>>&, unsigned, const char* = "SM");
+int eig_solve(vec&, mat&, const std::shared_ptr<MetaMat<double>>&, const std::shared_ptr<MetaMat<double>>&, unsigned, const char* = "SM", const sp_mat& = {});
 
 int eig_solve(cx_vec&, cx_mat&, const std::shared_ptr<MetaMat<double>>&, const std::shared_ptr<MetaMat<double>>&, unsigned, const char* = "LM");
 

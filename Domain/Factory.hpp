@@ -787,6 +787,7 @@ template<sp_d T> int Factory<T>::initialize() {
         initialize_displacement();
         break;
     case AnalysisType::EIGEN:
+        initialize_displacement();
         initialize_mass();
         initialize_stiffness();
         initialize_eigen();

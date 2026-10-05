@@ -23,7 +23,98 @@
 
 using mat_ptr = std::shared_ptr<MetaMat<double>>;
 
-int eig_solve(vec& eigval, mat& eigvec, const mat_ptr& K, const mat_ptr& M, const unsigned num, const char* WHICH) {
+namespace {
+    /**
+     * @brief Solves K*x=lambda*M*x subject to B^T*x=0, constraints implemented by Lagrange multipliers.
+     *
+     * With A=K+M, positive definite, the projector P=I-A^{-1}B(B^T*A^{-1}B)^{-1}B^T is A-orthogonal onto the null space of B^T.
+     * The operator OP=P*A^{-1}*K*P+c(I-P) is self-adjoint in the inner product defined by A.
+     * In the null space, it shares the eigenvectors of the constrained problem with eigenvalues mu=lambda/(1+lambda).
+     * In the complement, its eigenvalue is c, chosen beyond the wanted end of the spectrum so that no spurious eigenpair is found.
+     * Random vectors ARPACK draws when restarting lie partly in the complement, so it cannot be left as a null space.
+     * Since OP=A^{-1}(P^T*K*P+c*B(B^T*A^{-1}B)^{-1}B^T), the problem is solved in mode 2.
+     */
+    int constrained_eig_solve(vec& eigval, mat& eigvec, const mat_ptr& K, const mat_ptr& M, const unsigned num, const char* WHICH, const sp_mat& border) {
+        static auto BMAT{'G'}; // generalized eigenvalue problem A*x=lambda*B*x
+
+        blas_int IDO{0}, INFO{0};
+        auto N = static_cast<blas_int>(K->n_cols);
+        auto NEV = std::min(static_cast<blas_int>(num), N - 1);
+        auto TOL{0.};
+        auto NCV = std::min(3 * NEV, N); // use a larger NCV to ensure convergence
+        auto LWORKL = 2 * NCV * (NCV + 8);
+
+        blas_int IPARAM[11]{}, IPNTR[14]{};
+        podarray<double> RESID(N), V(uword(N) * uword(NCV)), WORKD(5 * uword(N)), WORKL(LWORKL);
+
+        IPARAM[0] = 1;    // exact shift
+        IPARAM[2] = 1000; // maximum iteration
+        IPARAM[6] = 2;    // mode 2: A*x=lambda*M*x
+
+        // factorisation may overwrite the matrix, keep M to compute products with A
+        const mat_ptr shifted = M->unique_copy();
+        shifted += K;
+
+        mat border_solution;
+        if(0 != shifted->solve(border_solution, border)) return SUANPAN_FAIL;
+
+        mat schur_inverse;
+        if(!inv(schur_inverse, mat(border.t() * border_solution))) {
+            suanpan_error("Constraints implemented by multipliers shall be linearly independent.\n");
+            return SUANPAN_FAIL;
+        }
+
+        // mu=lambda/(1+lambda) lies in [0,1) for non-negative lambda
+        const auto complement = 'S' == WHICH[0] ? 1. : 0.;
+
+        while(99 != IDO) {
+            arma_fortran(arma_dsaupd)(&IDO, &BMAT, &N, (char*)WHICH, &NEV, &TOL, RESID.memptr(), &NCV, V.memptr(), &N, IPARAM, IPNTR, WORKD.memptr(), WORKL.memptr(), &LWORKL, &INFO);
+            if(0 != INFO) break;
+            // ReSharper disable once CppEntityAssignedButNoRead
+            if(vec Y(WORKD.memptr() + IPNTR[1] - 1, N, false, true); -1 == IDO || 1 == IDO) {
+                vec X(WORKD.memptr() + IPNTR[0] - 1, N, false, true);
+                const vec multiplier = schur_inverse * (border.t() * X);
+                const vec projected = X - border_solution * multiplier;
+                const vec force = K * projected;
+                // mode 2 expects X to be overwritten by the product
+                X = force - border * (schur_inverse * (border_solution.t() * force)) + complement * (border * multiplier);
+                INFO = shifted->solve(Y, X);
+                if(0 != INFO) break;
+            }
+            else if(2 == IDO) {
+                const vec X(WORKD.memptr() + IPNTR[0] - 1, N, false, true);
+                // ReSharper disable once CppDFAUnusedValue
+                Y = K * X + M * X;
+            }
+        }
+
+        if(0 != INFO) {
+            suanpan_error("Error code {} received.\n", INFO);
+            return SUANPAN_FAIL;
+        }
+
+        suanpan_debug("Arnoldi iteration counter: {}.\n", IPARAM[2]);
+
+        static blas_int RVEC{1};
+        static auto HOWMNY{'A'};
+        static auto SIGMA{0.};
+
+        podarray<blas_int> SELECT(NCV);
+
+        eigval.set_size(NEV);
+        eigvec.set_size(N, NEV);
+
+        arma_fortran(arma_dseupd)(&RVEC, &HOWMNY, SELECT.memptr(), eigval.memptr(), eigvec.memptr(), &N, &SIGMA, &BMAT, &N, (char*)WHICH, &NEV, &TOL, RESID.memptr(), &NCV, V.memptr(), &N, IPARAM, IPNTR, WORKD.memptr(), WORKL.memptr(), &LWORKL, &INFO);
+
+        eigval = eigval / (1. - eigval);
+
+        return INFO;
+    }
+} // namespace
+
+int eig_solve(vec& eigval, mat& eigvec, const mat_ptr& K, const mat_ptr& M, const unsigned num, const char* WHICH, const sp_mat& border) {
+    if(!border.empty()) return constrained_eig_solve(eigval, eigvec, K, M, num, WHICH, border);
+
     static auto BMAT{'G'}; // generalized eigenvalue problem A*x=lambda*B*x
 
     blas_int IDO{0}, INFO{0};
