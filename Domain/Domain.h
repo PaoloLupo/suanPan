@@ -223,6 +223,10 @@ public:
     const SolverQueue& get_solver_pool() const override;
     const StepQueue& get_step_pool() const override;
 
+    // unlike pools, which are only populated on initialisation, storages hold every inserted object
+    const ElementStorage& get_element_storage() const { return element_pond; }
+    const NodeStorage& get_node_storage() const { return node_pond; }
+
     friend shared_ptr<Amplitude>& get_amplitude(const shared_ptr<Domain>&, unsigned);
     friend shared_ptr<Expression>& get_expression(const shared_ptr<Domain>&, unsigned);
     friend shared_ptr<Constraint>& get_constraint(const shared_ptr<Domain>&, unsigned);

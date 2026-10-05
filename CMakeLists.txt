@@ -59,6 +59,7 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "AMD6
 endif ()
 
 option(BUILD_SHARED_LIBS "Build shared instead of static libraries." OFF)
+option(SP_BUILD_CAPI "Build a shared library exposing the C API in Toolbox/capi.h instead of the executable." OFF)
 option(SP_BUILD_DLL_EXAMPLE "Build dynamic linked library examples." OFF)
 option(SP_BUILD_PARALLEL "Build with parallel support via TBB." OFF)
 option(SP_ENABLE_NATIVE_ARCH "Build with native arch, when this is set, all AVX related settings will be ignored." OFF)
@@ -471,12 +472,23 @@ if (MINGW)
     endforeach ()
 endif ()
 
-add_executable(${PROJECT_NAME}
-        suanPan.cpp
-        Include/catch/catch_amalgamated.cpp
-        Include/fmt/src/format.cc
-        Include/whereami/whereami.c
-)
+if (SP_BUILD_CAPI)
+    add_library(${PROJECT_NAME} SHARED
+            Toolbox/capi.cpp
+            Include/catch/catch_amalgamated.cpp
+            Include/fmt/src/format.cc
+            Include/whereami/whereami.c
+    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE SUANPAN_CAPI_EXPORTS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME suanpan_capi)
+else ()
+    add_executable(${PROJECT_NAME}
+            suanPan.cpp
+            Include/catch/catch_amalgamated.cpp
+            Include/fmt/src/format.cc
+            Include/whereami/whereami.c
+    )
+endif ()
 
 set_source_files_properties(Include/catch/catch_amalgamated.cpp PROPERTIES COMPILE_DEFINITIONS "CATCH_AMALGAMATED_CUSTOM_MAIN")
 
