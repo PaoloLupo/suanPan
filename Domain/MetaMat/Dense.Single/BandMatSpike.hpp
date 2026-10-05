@@ -47,7 +47,17 @@ void sspike_gbtrs_(la_it*, const char*, la_it*, la_it*, la_it*, la_it*, float*, 
 template<sp_d T> class BandMatSpike final : public DenseMat<T> {
     static constexpr auto TRAN = 'N';
 
-    static la_it SPROTO, DPROTO;
+    // tuned on first use instead of during static initialisation, which runs under the loader lock
+    // when suanPan is built as a shared library and would deadlock on the threaded tuning
+    static la_it tuned_prototype() {
+        static const la_it prototype = [] {
+            la_it PROTO[64]{};
+            if constexpr(std::is_same_v<T, float>) sspike_tune_(PROTO);
+            else dspike_tune_(PROTO);
+            return PROTO[6];
+        }();
+        return prototype;
+    }
 
     static T bin;
 
@@ -66,7 +76,7 @@ template<sp_d T> class BandMatSpike final : public DenseMat<T> {
 
         spikeinit_(SPIKE, &N, &KLU);
 
-        SPIKE[6] = std::is_same_v<T, float> ? SPROTO : DPROTO;
+        SPIKE[6] = tuned_prototype();
         SPIKE[4] = SPIKE[6] + SPIKE[6] / 2 + 10;
         SPIKE[3] = SPIKE[4] / 2;
     }
@@ -122,18 +132,6 @@ public:
 
     Mat<T> operator*(const Mat<T>&) const override;
 };
-
-template<sp_d T> la_it BandMatSpike<T>::SPROTO = [] {
-    la_it PROTO[64]{};
-    sspike_tune_(PROTO);
-    return PROTO[6];
-}();
-
-template<sp_d T> la_it BandMatSpike<T>::DPROTO = [] {
-    la_it PROTO[64]{};
-    dspike_tune_(PROTO);
-    return PROTO[6];
-}();
 
 template<sp_d T> T BandMatSpike<T>::bin = T(0);
 
