@@ -64,9 +64,14 @@ int Arnoldi::analyze() {
     D->update<Statistics::AssembleMatrix>(t_clock);
 
 #ifdef SUANPAN_DISTRIBUTED
+    if(0 != W->get_multiplier_size()) {
+        suanpan_error("Distributed frequency analysis does not support constraints implemented by multipliers.\n");
+        return SUANPAN_FAIL;
+    }
+
     return eig_psolve(W->modify_eigenvalue(), W->modify_eigenvector(), W->get_stiffness(), t_mass, eigen_num, 'L' == eigen_type ? "LM" : "SM");
 #else
-    return eig_solve(W->modify_eigenvalue(), W->modify_eigenvector(), W->get_stiffness(), t_mass, eigen_num, 'L' == eigen_type ? "LM" : "SM");
+    return eig_solve(W->modify_eigenvalue(), W->modify_eigenvector(), W->get_stiffness(), t_mass, eigen_num, 'L' == eigen_type ? "LM" : "SM", W->get_auxiliary_stiffness());
 #endif
 }
 
