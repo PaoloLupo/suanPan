@@ -23,6 +23,10 @@
 #include <Include/whereami/whereami.h>
 #include <Step/Bead.h>
 #include <Toolbox/command.h>
+#include <typeinfo>
+#ifdef __GNUG__
+#include <cxxabi.h>
+#endif
 
 extern fs::path SUANPAN_EXE;
 
@@ -179,6 +183,18 @@ namespace {
         return tags;
     }
 
+    // objects do not store the keyword they were created with, so the dynamic type stands in for it
+    std::string class_name(const std::type_info& type) {
+        std::string name = type.name();
+#ifdef __GNUG__
+        int status;
+        if(const unique_ptr<char, decltype(&std::free)> demangled(abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), &std::free); 0 == status) name = demangled.get();
+#endif
+        for(const std::string_view prefix : {"class ", "struct "})
+            if(name.starts_with(prefix)) name.erase(0, prefix.size());
+        return name;
+    }
+
     int node_vector(const sp_model* model, const unsigned tag, double* out, const size_t capacity, size_t* length, const vec& (Node::*getter)() const) {
         return query(model, length, [&](const Domain& domain) {
             const auto& node = domain.get_node(tag);
@@ -254,5 +270,12 @@ int sp_element_nodes(const sp_model* model, const unsigned tag, unsigned* out, c
     return query(model, length, [&](const Domain& domain) {
         const auto& element = domain.get_element(tag);
         return nullptr == element ? SP_NOT_FOUND : copy_out(element->get_node_encoding(), out, capacity, length);
+    });
+}
+
+int sp_element_type(const sp_model* model, const unsigned tag, char* out, const size_t capacity, size_t* length) {
+    return query(model, length, [&](const Domain& domain) {
+        const auto& element = domain.get_element(tag);
+        return nullptr == element ? SP_NOT_FOUND : copy_out(class_name(typeid(*element)), out, capacity, length);
     });
 }

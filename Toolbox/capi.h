@@ -110,6 +110,8 @@ SP_API int sp_node_resistance(const sp_model* model, unsigned tag, double* out, 
 
 SP_API int sp_element_tags(const sp_model* model, unsigned* out, size_t capacity, size_t* length);
 SP_API int sp_element_nodes(const sp_model* model, unsigned tag, unsigned* out, size_t capacity, size_t* length);
+/** @brief Writes the class name of the element, e.g. "EB21", without a terminating NUL. */
+SP_API int sp_element_type(const sp_model* model, unsigned tag, char* out, size_t capacity, size_t* length);
 
 #ifdef __cplusplus
 }
