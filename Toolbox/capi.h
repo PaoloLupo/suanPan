@@ -107,11 +107,18 @@ SP_API int sp_node_tags(const sp_model* model, unsigned* out, size_t capacity, s
 SP_API int sp_node_coordinate(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
 SP_API int sp_node_displacement(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
 SP_API int sp_node_resistance(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
+/** @brief Writes 1 for each DOF of the node restrained by boundary conditions in the last analysis, 0 otherwise. */
+SP_API int sp_node_restraints(const sp_model* model, unsigned tag, unsigned char* out, size_t capacity, size_t* length);
 
 SP_API int sp_element_tags(const sp_model* model, unsigned* out, size_t capacity, size_t* length);
 SP_API int sp_element_nodes(const sp_model* model, unsigned tag, unsigned* out, size_t capacity, size_t* length);
 /** @brief Writes the class name of the element, e.g. "EB21", without a terminating NUL. */
 SP_API int sp_element_type(const sp_model* model, unsigned tag, char* out, size_t capacity, size_t* length);
+/**
+ * @brief Writes the resisting force of the element in global coordinates, node by node and DOF by DOF,
+ * which is empty until the model is analysed.
+ */
+SP_API int sp_element_resistance(const sp_model* model, unsigned tag, double* out, size_t capacity, size_t* length);
 
 #ifdef __cplusplus
 }

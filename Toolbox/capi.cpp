@@ -262,6 +262,19 @@ int sp_node_displacement(const sp_model* model, const unsigned tag, double* out,
 
 int sp_node_resistance(const sp_model* model, const unsigned tag, double* out, const size_t capacity, size_t* length) { return node_vector(model, tag, out, capacity, length, &Node::get_current_resistance); }
 
+int sp_node_restraints(const sp_model* model, const unsigned tag, unsigned char* out, const size_t capacity, size_t* length) {
+    return query(model, length, [&](const Domain& domain) {
+        const auto& node = domain.get_node(tag);
+        if(nullptr == node) return SP_NOT_FOUND;
+        // boundary conditions register the reordered DOFs they restrain while processing
+        const auto& constrained = domain.get_constrained_dof();
+        const auto& dofs = node->get_reordered_dof();
+        std::vector<unsigned char> restrained(dofs.n_elem);
+        for(uword I = 0; I < dofs.n_elem; ++I) restrained[I] = constrained.count(dofs(I)) > 0 ? 1 : 0;
+        return copy_out(restrained, out, capacity, length);
+    });
+}
+
 int sp_element_tags(const sp_model* model, unsigned* out, const size_t capacity, size_t* length) {
     return query(model, length, [&](const Domain& domain) { return copy_out(sorted_tags(domain.get_element_storage()), out, capacity, length); });
 }
@@ -277,5 +290,12 @@ int sp_element_type(const sp_model* model, const unsigned tag, char* out, const 
     return query(model, length, [&](const Domain& domain) {
         const auto& element = domain.get_element(tag);
         return nullptr == element ? SP_NOT_FOUND : copy_out(class_name(typeid(*element)), out, capacity, length);
+    });
+}
+
+int sp_element_resistance(const sp_model* model, const unsigned tag, double* out, const size_t capacity, size_t* length) {
+    return query(model, length, [&](const Domain& domain) {
+        const auto& element = domain.get_element(tag);
+        return nullptr == element ? SP_NOT_FOUND : copy_out(element->get_current_resistance(), out, capacity, length);
     });
 }
