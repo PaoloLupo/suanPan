@@ -1,0 +1,41 @@
+# A TEST MODEL FOR THE ORIENTATION OF B31 ELEMENTS
+# a vertical cantilever of length L = 2 with its local z axis along global Y, under a tip load
+# P = 1 along Y, which bends it with EI = 10 * 12^3 * 1 / 12 = 1440: the tip deflects by
+# PL^3 / 3EI = 1.8519E-3 and turns by PL^2 / 2EI = 1.3889E-3, while taking the rows of the
+# direction cosine matrix for its columns stretched it instead, by PL / EA = 1.6667E-2
+
+node 1 0 0 0
+node 2 0 0 2
+
+orientation B3DL 1 0. 1. 0.
+
+material Elastic1D 1 10
+
+section Rectangle3D 1 12 1 1
+
+element B31 1 1 2 1 1
+
+fix2 1 E 1
+
+cload 1 0 1 2 2
+
+step static 1
+set ini_step_size 1
+set fixed_step_size true
+
+converger RelIncreDisp 1 1E-10 5 1
+
+analyze
+
+# Node 2:
+# Coordinate:
+#   0.0000e+00  0.0000e+00  2.0000e+00
+# Displacement:
+#  -3.0840e-19  1.8519e-03  1.7990e-20 -1.3889e-03 -2.3130e-19  0.0000e+00
+# Resistance:
+#   7.0008e-19  1.0000e+00 -5.3102e-19  3.0531e-16  6.2995e-20  0.0000e+00
+peek node 2
+
+reset
+clear
+exit

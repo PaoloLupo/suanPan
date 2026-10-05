@@ -32,10 +32,9 @@ void B3DL::update_transformation() {
 
     length = norm(x_axis);
 
-    direction_cosine.resize(3, 3);
-    direction_cosine.col(0) = normalise(x_axis);
-    direction_cosine.col(1) = normalise(cross(z_axis, x_axis));
-    direction_cosine.col(2) = normalise(cross(x_axis, direction_cosine.col(1)));
+    // the rows are the local axes, so that the product with a global vector gives its local components
+    const vec y_axis = normalise(cross(z_axis, x_axis));
+    direction_cosine = join_cols(normalise(x_axis).t(), y_axis.t(), normalise(cross(x_axis, y_axis)).t());
 }
 
 vec B3DL::to_local_vec(const vec& g_disp) const {
