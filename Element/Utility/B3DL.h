@@ -22,6 +22,10 @@
  *
  * Flexibility-based finite element models for the nonlinear static and dynamic analysis of concrete frame structures
  *
+ * The ends of the element may be offset from its nodes by rigid arms, given in global
+ * coordinates, which model eccentric connections, insertion points away from the centroid and
+ * rigid zones at joints. The element then spans the offset points.
+ *
  * Order of local quantities:
  *   uniform axial
  *   strong axis bending near node
@@ -45,11 +49,17 @@
 #include <Element/Utility/Orientation.h>
 
 class B3DL : public Orientation {
+    vec offset_i, offset_j;
+
+    [[nodiscard]] bool has_offset() const;
+    [[nodiscard]] mat rigid_arm() const;
+
 protected:
     void update_transformation() override;
 
 public:
     using Orientation::Orientation;
+    B3DL(unsigned, vec&&, vec&&);
 
     [[nodiscard]] Type type() const override;
 
