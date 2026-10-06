@@ -1,0 +1,54 @@
+# A TEST MODEL FOR MPC WITH SPARSE STORAGE
+# with sparse storage, constraints implemented by multipliers are solved along with the system in
+# a single factorisation, giving the same results as MPC.supan
+
+node 1 0 0
+node 2 1 0
+node 3 2 0
+node 4 3 0
+
+material Elastic1D 1 10
+
+element EB21 1 1 2 12 1 1 0
+element EB21 2 3 4 12 1 1 0
+
+fix 1 E 1 4
+
+mpc 2 0 .1 2 2 -1. 3 2 1.
+
+cload 1 0 10 2 2
+
+step static 1 1
+set ini_step_size .2
+set fixed_step_size true
+set symm_mat false
+set sparse_mat true
+
+converger RelIncreDisp 1 1E-10 3 1
+
+analyze
+
+# Node 2:
+# Coordinate:
+#   1.0000e+00  0.0000e+00
+# Displacement:
+#   0.0000e+00  1.1667e-01  1.7500e-01
+# Resistance:
+#   0.0000e+00  3.5000e+00  0.0000e+00
+# 
+# Node 3:
+# Coordinate:
+#   2.0000e+00  0.0000e+00
+# Displacement:
+#   0.0000e+00  2.1667e-01 -3.2500e-01
+# Resistance:
+#   0.0000e+00  6.5000e+00  1.7764e-15
+peek node 2 3
+
+peek element 1
+
+peek statistics
+
+reset
+clear
+exit

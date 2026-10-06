@@ -45,6 +45,7 @@ public:
 
     [[nodiscard]] int process_constraint() override;
 
+    bool solve_bordered(vec&, const vec&) override { return false; }
     int solve(mat&, const mat&) override;
     int solve(mat&, const sp_mat&) override;
     int solve(mat&, mat&&) override;
