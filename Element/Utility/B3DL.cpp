@@ -18,6 +18,26 @@
 #include "B3DL.h"
 
 #include <Element/Element.h>
+#include <Toolbox/tensor.h>
+
+bool B3DL::has_offset() const { return !offset_i.empty(); }
+
+/**
+ * \brief the transformation from the displacements of the nodes to those of the offset ends,
+ *        u_e = u_n + theta x r, so that the forces at the nodes are its transpose times those at
+ *        the ends
+ */
+mat B3DL::rigid_arm() const {
+    mat arm = eye(12, 12);
+    arm(span(0, 2), span(3, 5)) = -transform::skew_symm(offset_i);
+    arm(span(6, 8), span(9, 11)) = -transform::skew_symm(offset_j);
+    return arm;
+}
+
+B3DL::B3DL(const unsigned T, vec&& O, vec&& E)
+    : Orientation(T, std::move(O))
+    , offset_i(E.head(3))
+    , offset_j(E.tail(3)) {}
 
 Orientation::Type B3DL::type() const { return Type::B3D; }
 
@@ -28,7 +48,8 @@ void B3DL::update_transformation() {
 
     const mat coor = element_ptr->get_coordinate(3).t();
 
-    const vec x_axis = coor.col(1) - coor.col(0);
+    vec x_axis = coor.col(1) - coor.col(0);
+    if(has_offset()) x_axis += offset_j - offset_i;
 
     length = norm(x_axis);
 
@@ -38,10 +59,12 @@ void B3DL::update_transformation() {
 }
 
 vec B3DL::to_local_vec(const vec& g_disp) const {
-    vec t_disp(g_disp.n_elem, fill::none);
+    const vec e_disp = has_offset() ? vec(rigid_arm() * g_disp) : g_disp;
+
+    vec t_disp(e_disp.n_elem, fill::none);
     for(auto I = 0, J = 2; I < 12; I += 3, J += 3) {
         const span sa(I, J);
-        t_disp(sa) = direction_cosine * g_disp(sa);
+        t_disp(sa) = direction_cosine * e_disp(sa);
     }
 
     vec l_disp(6); // eq. 2.11
@@ -70,6 +93,8 @@ vec B3DL::to_global_vec(const vec& l_disp) const {
         const span sa(I, J);
         g_disp(sa) = direction_cosine.t() * g_disp(sa);
     }
+
+    if(has_offset()) return rigid_arm().t() * g_disp;
 
     return g_disp;
 }
@@ -112,6 +137,11 @@ mat B3DL::to_global_mass_mat(const mat& l_mat) const {
                 g_mat(sa, sb) = direction_cosine.t() * g_mat(sa, sb) * direction_cosine;
             }
         }
+
+        if(has_offset()) {
+            const auto arm = rigid_arm();
+            return arm.t() * g_mat * arm;
+        }
     }
 
     return g_mat;
@@ -142,6 +172,11 @@ mat B3DL::to_global_stiffness_mat(const mat& l_mat) const {
             const span sb(J3, J3 + 2u);
             g_mat(sa, sb) = direction_cosine.t() * g_mat(sa, sb) * direction_cosine;
         }
+    }
+
+    if(has_offset()) {
+        const auto arm = rigid_arm();
+        return arm.t() * g_mat * arm;
     }
 
     return g_mat;

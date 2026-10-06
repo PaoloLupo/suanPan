@@ -1,0 +1,54 @@
+# A TEST MODEL FOR RIGID OFFSETS OF B3DL
+# EI = EA = 1000 and GJ = 400 for both cantilevers, of length L = 3 between their nodes
+#
+# the first one has a rigid zone 0.5 long at its fixed end, so that only Lf = 2.5 bends under the
+# tip load P = 1 along Z: the tip deflects by P Lf^3 / 3EI = 5.2083E-3 and turns by
+# P Lf^2 / 2EI = 3.1250E-3
+#
+# the second one has its axis e = 0.1 below its nodes, so that the axial load P = 1 at the free
+# node also bends it by M = P e: it turns by M L / EI = 3.0000E-4, deflects by
+# M L^2 / 2EI = 4.5000E-4 and stretches by P L / EA + e M L / EI = 3.0300E-3 at the node
+
+node 1 0 0 0
+node 2 3 0 0
+node 3 0 2 0
+node 4 3 2 0
+
+orientation B3DL 1 0. 0. 1. .5 0. 0. 0. 0. 0.
+orientation B3DL 2 0. 0. 1. 0. 0. -.1 0. 0. -.1
+
+element EB31 1 1 2 1000 400 1 1 1 1 1
+element EB31 2 3 4 1000 400 1 1 1 1 2
+
+fix2 1 E 1 3
+
+cload 1 0 1 3 2
+cload 2 0 1 1 4
+
+step static 1
+set ini_step_size 1
+set fixed_step_size true
+
+converger RelIncreDisp 1 1E-10 5 1
+
+analyze
+
+# Node 2:
+# Coordinate:
+#   3.0000e+00  0.0000e+00  0.0000e+00
+# Displacement:
+#   0.0000e+00  0.0000e+00  5.2083e-03  0.0000e+00 -3.1250e-03  0.0000e+00
+# Resistance:
+#   0.0000e+00  0.0000e+00  1.0000e+00  0.0000e+00  0.0000e+00  0.0000e+00
+# Node 4:
+# Coordinate:
+#   3.0000e+00  2.0000e+00  0.0000e+00
+# Displacement:
+#   3.0300e-03  0.0000e+00 -4.5000e-04  0.0000e+00  3.0000e-04  0.0000e+00
+# Resistance:
+#   1.0000e+00  0.0000e+00  0.0000e+00  0.0000e+00  0.0000e+00  0.0000e+00
+peek node 2 4
+
+reset
+clear
+exit

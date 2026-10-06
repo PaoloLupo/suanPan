@@ -2604,7 +2604,23 @@ int create_new_orientation(const shared_ptr<DomainBase>& domain, std::istringstr
         return SUANPAN_SUCCESS;
     }
 
-    if(is_equal(file_type, "B3DL")) domain->insert(std::make_shared<B3DL>(tag, std::move(xyz)));
+    vec offset;
+    if(!command.eof()) {
+        offset.set_size(6);
+        if(!get_input(command, offset)) {
+            suanpan_error("Six valid offsets are required.\n");
+            return SUANPAN_SUCCESS;
+        }
+        if(!is_equal(file_type, "B3DL")) {
+            suanpan_error("Only B3DL accepts offsets.\n");
+            return SUANPAN_SUCCESS;
+        }
+    }
+
+    if(is_equal(file_type, "B3DL")) {
+        if(offset.empty()) domain->insert(std::make_shared<B3DL>(tag, std::move(xyz)));
+        else domain->insert(std::make_shared<B3DL>(tag, std::move(xyz), std::move(offset)));
+    }
     else if(is_equal(file_type, "B3DC")) domain->insert(std::make_shared<B3DC>(tag, std::move(xyz)));
     else if(is_equal(file_type, "B3DOSL")) domain->insert(std::make_shared<B3DOSL>(tag, std::move(xyz)));
     else if(is_equal(file_type, "B3DOSC")) domain->insert(std::make_shared<B3DOSC>(tag, std::move(xyz)));
