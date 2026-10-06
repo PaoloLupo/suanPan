@@ -71,6 +71,7 @@ public:
 
     int update_internal(const mat&) final;
 
+    bool solve_bordered(vec&, const vec&) final { return false; }
     int solve(mat&, const mat&) final;
     int solve(mat&, const sp_mat&) final;
     int solve(mat&, mat&&) final;

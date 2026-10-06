@@ -279,6 +279,45 @@ mat Integrator::solve(sp_mat&& B) {
     return X;
 }
 
+/**
+ * Solve [K B; B' 0][X; L] = [R; G] with a single factorisation, B being the border of the
+ * constraints implemented by multipliers and G their residual, rather than solving K for every
+ * column of B. The multipliers L go to the factory. Only sparse systems are bordered this way.
+ */
+bool Integrator::solve_bordered(vec& X, const vec& R) {
+#ifdef SUANPAN_DISTRIBUTED
+    return false;
+#else
+    auto& W = database.lock()->get_factory();
+    const auto& stiffness = W->get_stiffness();
+    if(!W->is_sparse() || nullptr == stiffness) return false;
+
+    const auto& border = W->get_auxiliary_stiffness();
+    const auto n_size = W->get_size();
+    const auto n_border = border.n_cols;
+    if(R.n_elem != n_size) return false;
+
+    SparseMatSuperLU<double> system(n_size + n_border, n_size + n_border, stiffness->triplet_mat.n_elem + 2 * border.n_nonzero);
+    system.triplet_mat.assemble(stiffness->triplet_mat, 0, 0, 1.);
+    for(auto I = border.begin(); I != border.end(); ++I) {
+        system.at(I.row(), n_size + I.col()) = *I;
+        system.at(n_size + I.col(), I.row()) = *I;
+    }
+
+    const mat right = join_cols(R, get_auxiliary_residual());
+    mat solution, correction;
+    if(SUANPAN_SUCCESS != system.solve(solution, right)) return false;
+    // the saddle point loses some accuracy to pivoting, which a refinement with the same factorisation recovers
+    if(SUANPAN_SUCCESS != system.solve(correction, right - system * solution)) return false;
+    solution += correction;
+
+    X = solution.head_rows(n_size);
+    W->modify_auxiliary_lambda() = solution.tail_rows(n_border);
+
+    return true;
+#endif
+}
+
 int Integrator::solve(mat& X, const mat& B) { return database.lock()->get_factory()->get_stiffness()->solve(X, B); }
 
 int Integrator::solve(mat& X, const sp_mat& B) { return database.lock()->get_factory()->get_stiffness()->solve(X, B); }

@@ -130,6 +130,11 @@ public:
     mat solve(const sp_mat&);
     mat solve(mat&&);
     mat solve(sp_mat&&);
+    /**
+     * \brief Solve the system bordered by the constraints implemented by multipliers at once.
+     * Integrators whose systems differ from the effective stiffness shall return false.
+     */
+    [[nodiscard]] virtual bool solve_bordered(vec&, const vec&);
     virtual int solve(mat&, const mat&);
     virtual int solve(mat&, const sp_mat&);
     virtual int solve(mat&, mat&&);

@@ -87,7 +87,10 @@ int Newton::analyze() {
 
         const auto residual = G->get_force_residual();
 
-        auto flag = G->solve(samurai, residual);
+        // many constraints implemented by multipliers are much cheaper to solve along with the system
+        const auto bordered = 0 != W->get_multiplier_size() && G->solve_bordered(samurai, residual);
+
+        auto flag = bordered ? SUANPAN_SUCCESS : G->solve(samurai, residual);
 
         suanpan_assert([&] {
             if(!samurai.is_finite()) {
@@ -102,7 +105,8 @@ int Newton::analyze() {
             return flag;
         }
 
-        if(const auto n_size = W->get_size(); 0 != W->get_multiplier_size()) {
+        if(bordered) {}
+        else if(const auto n_size = W->get_size(); 0 != W->get_multiplier_size()) {
             // deal with constraints implemented by multiplier method
             auto& aux_lambda = W->modify_auxiliary_lambda();
             auto& aux_border = W->get_auxiliary_stiffness();
